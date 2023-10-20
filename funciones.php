@@ -1,11 +1,18 @@
 <?php
-// Esta función se llama consultar y se encarga de consultar y mostrar las personas de una base de datos.
-//
-// @return $texto los datos de las personas de una base de datos.
-// @param $into un numero de identificar de la persona.
+/**
+ * Esta función se encarga de consultar y mostrar las personas de una base de datos.
+ *
+ * @param int  $u  Un identificador de persona.
+ * @param string  $c  Una clave de persona.
+ * @param bool  $p  Un parámetro para realizar el conteo.
+ *  * @param int  $l  Un parámetro para establecer el limite de busqueda.
 
+ *
+ * @return string  Los datos de las personas de la base de datos, separados por pipe (|).
+ *
+ */
 
-function consultar($u = null, $c = null)
+function consultar($u = null, $c = null, $p = null, $l=null)
 {
     // Declaramos una variable para almacenar la salida de la función.
     $salida = "";
@@ -13,16 +20,22 @@ function consultar($u = null, $c = null)
     $conexion = mysqli_connect('localhost', 'root', '', 'aa');
 
     // Creamos la consulta SQL para seleccionar todos los registros de la tabla `productos`.
-    $sql = "SELECT * FROM productos";
+    $sql = "SELECT * FROM productos limit $l;";
 
     // Si se ha proporcionado un identificador de persona, lo agregamos a la consulta SQL.
     if ($u != null) {
         $sql .= " WHERE id = $u";
     }
 
-    // Si se ha proporcionado una clave de persona, lo agregamos a la consulta SQL.
+    // Si se ha proporcionado una clave de persona, la escapamos antes de agregarla a la consulta SQL.
     if ($c != null) {
-        $sql .= " AND clave = $c";
+        $clave = mysqli_real_escape_string($conexion, $c);
+        $sql .= " AND clave = '$clave'";
+    }
+
+    // Si se ha proporcionado un parámetro para realizar el conteo, se reemplaza la consulta SQL básica con una consulta que cuenta el número de filas en la tabla `personas`.
+    if ($p != null) {
+        $sql = "SELECT COUNT(*) AS contar FROM productos";
     }
 
     // Ejecutamos la consulta SQL y almacenamos el resultado en una variable.
@@ -30,16 +43,22 @@ function consultar($u = null, $c = null)
 
     // Si la consulta devuelve algún resultado, lo recorremos y almacenamos los datos de cada persona en la variable `salida`.
     if (mysqli_num_rows($resultado) > 0) {
-        while ($fila = mysqli_fetch_assoc($resultado)) {
-            $salida .= $fila['id'] . " |"; //muestra la fila id
-            $salida .= $fila['nombre'] . " |"; //muestra la fila nombre
-            $salida .= $fila['clave'] . " |"; //muestra la fila clave
-            $salida .= $fila['sitio'] . " |"; //muestra la fila sitio
-            $salida .= $fila['invitacion'] . " |"; //muestra la fila invitacion
+        if ($sql != "SELECT COUNT(*) AS contar FROM productos") {
+            while ($fila = mysqli_fetch_assoc($resultado)) {
+                $salida .= $fila['id'] . " |"; //muestra la fila id
+                $salida .= $fila['nombre'] . " |"; //muestra la fila nombre
+                $salida .= $fila['clave'] . " |"; //muestra la fila clave
+                $salida .= $fila['sitio'] . " |"; //muestra la fila sitio
+                $salida .= $fila['invitacion'] . " |".'<br>'; //muestra la fila invitacion
+            }
+        } else {
+            while ($fila = mysqli_fetch_assoc($resultado)) {
+                //muestra un conteo
+                $salida .= $fila['contar']."<br> ";
+            }
         }
-    }
-    else {
-        $salida ="eres un error";
+    } else {
+        $salida .= "error"; // un mensaje de error
     }
 
     // Cerramos la conexión a la base de datos.
